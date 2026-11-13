@@ -194,8 +194,8 @@
 
     <script>
         // --- Game Grid Configuration (Easy to modify!) ---
-        const GRID_COLS = 8;
-        const GRID_ROWS = 8;
+        const GRID_COLS = 6;
+        const GRID_ROWS = 6;
         const HINT_DURATION_MS = 5000;
 
         // Game State Variables
@@ -301,7 +301,8 @@
             front.innerHTML = `<span class="text-2xl sm:text-3xl font-black opacity-75">${id + 1}</span>`;
 
             const back = document.createElement('div');
-            back.className = 'tile-back';
+            back.className = 'tile-back flex items-center justify-center';
+            back.innerHTML = `<span class="text-3xl sm:text-4xl font-black text-white/70 pointer-events-none" style="text-shadow: 1px 2px 4px rgba(0,0,0,0.8);">${id + 1}</span>`;
             
             // Set the background image slice for this tile
             back.style.backgroundImage = `url(${imgUrl})`;
