@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌟 快樂拼圖尋寶 🌟</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Tailwind slate-50 */
+        }
+
+        /* 3D Flip Card CSS */
+        .perspective {
+            perspective: 1000px;
+        }
+        
+        .tile-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        
+        .tile.flipped .tile-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .tile-front, .tile-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 0.5rem;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Front is the "Hidden" side with a pattern/icon */
+        .tile-front {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.5);
+            cursor: pointer;
+        }
+
+        .tile-front:hover {
+            background: linear-gradient(135deg, #4f46e5, #4338ca);
+        }
+        
+        /* Back is the "Revealed" picture slice */
+        .tile-back {
+            transform: rotateY(180deg);
+            background-repeat: no-repeat;
+            background-color: #e2e8f0;
+            transition: filter 0.5s ease, opacity 0.5s ease;
+        }
+
+        .tile.matched .tile-back {
+            filter: grayscale(100%);
+            opacity: 0.4;
+        }
+
+        #targetPiece {
+            background-repeat: no-repeat;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transition: opacity 0.3s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        
+        /* Bouncy Buttons for Kids */
+        .bouncy-btn {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .bouncy-btn:hover {
+            transform: scale(1.05);
+        }
+        .bouncy-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800 bg-gradient-to-br from-blue-100 via-green-100 to-yellow-100">
+
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-6xl flex flex-col items-center">
+        
+        <!-- Header -->
+        <header id="headerArea" class="text-center mb-6">
+            <h1 class="text-5xl font-extrabold tracking-tight text-blue-600 mb-3 drop-shadow-sm">🌟 快樂拼圖尋寶 🌟</h1>
+            <p class="text-xl text-green-700 font-bold">把藏起來的拼圖找出來吧！</p>
+        </header>
+
+        <!-- Controls -->
+        <div id="controlsArea" class="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl w-full max-w-3xl mb-8 flex flex-col sm:flex-row gap-4 items-end border-4 border-white">
+            <div class="flex-1 w-full">
+                <label for="imageUpload" class="block text-lg font-bold text-blue-700 mb-2">🖼️ 選擇一張圖片</label>
+                <input type="file" id="imageUpload" accept="image/*" 
+                    class="block w-full text-sm text-slate-500
+                    file:mr-4 file:py-3 file:px-6
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-bold
+                    file:bg-blue-100 file:text-blue-600
+                    hover:file:bg-blue-200 cursor-pointer transition-colors">
+            </div>
+
+            <div class="w-full sm:w-auto">
+                <button id="startBtn" disabled
+                    class="w-full bouncy-btn bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-extrabold text-lg py-3 px-8 rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                    🚀 開始尋寶！
+                </button>
+            </div>
+        </div>
+
+        <!-- Placeholder before upload -->
+        <div id="placeholder" class="w-full max-w-md aspect-video border-4 border-dashed border-blue-300 rounded-3xl flex items-center justify-center text-blue-400 bg-white/50 backdrop-blur-sm shadow-inner">
+            <div class="text-center">
+                <div class="text-6xl mb-3">🖼️</div>
+                <p class="text-lg font-bold text-green-600">上傳圖片來開始遊戲吧！</p>
+            </div>
+        </div>
+
+        <!-- Game Wrapper -->
+        <div id="gameWrapper" class="w-full hidden flex-col items-center flex-grow">
+            
+            <button id="backBtn" class="mb-6 bouncy-btn bg-white hover:bg-blue-50 text-blue-600 font-bold py-3 px-8 rounded-full shadow-md transition-colors text-base self-start sm:self-center border-2 border-blue-200">
+                🔙 回到首頁
+            </button>
+
+            <div class="w-full flex flex-col md:flex-row gap-8 items-start justify-center">
+                
+                <!-- Target Area -->
+                <div class="w-full md:w-1/3 max-w-sm flex flex-col items-center bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-xl border-4 border-white">
+                    <h2 class="text-2xl font-extrabold text-blue-700 mb-2 text-center">🔍 找找看這塊拼圖在哪裡？</h2>
+                    
+                    <!-- Cheer Text for Kids -->
+                    <div id="cheerText" class="text-lg font-bold text-orange-500 mb-4 transition-colors h-6 flex items-center justify-center w-full text-center">
+                        🚀 準備好了嗎？加油！
+                    </div>
+
+                    <div id="targetPieceContainer" class="w-full aspect-square bg-blue-50 rounded-2xl p-3 flex items-center justify-center border-2 border-blue-100 shadow-inner">
+                        <div id="targetPiece" class="w-full h-full rounded-xl"></div>
+                    </div>
+                    <div class="mt-6 text-center text-lg font-extrabold text-orange-600 bg-orange-100 px-6 py-3 rounded-full shadow-sm w-full">
+                        🌟 找到數量： <span id="scoreDisplay" class="text-2xl">0</span> / <span id="totalDisplay" class="text-2xl">0</span>
+                    </div>
+                    <div class="mt-3 text-center text-lg font-extrabold text-green-600 bg-green-100 px-6 py-3 rounded-full shadow-sm w-full flex items-center justify-center gap-2">
+                        ⏱️ 尋寶時間：
+                        <span id="timeDisplay" class="text-2xl">00:00</span>
+                    </div>
+                </div>
+
+                <!-- Board Area -->
+                <div class="w-full md:w-2/3 max-w-2xl relative">
+                    <!-- Grid will be injected here -->
+                    <div id="board" class="w-full aspect-square grid gap-2 bg-white/50 backdrop-blur-sm p-3 rounded-3xl shadow-xl border-4 border-white"></div>
+                    
+                    <!-- Success Overlay -->
+                    <div id="winOverlay" class="absolute inset-0 z-50 hidden flex-col items-center justify-center bg-white/90 rounded-3xl backdrop-blur-sm">
+                        <div class="bg-white p-8 rounded-3xl shadow-2xl text-center border-4 border-yellow-300 max-w-sm w-full mx-4">
+                            <div class="text-7xl mb-4 animate-bounce">🎉</div>
+                            <h3 class="text-3xl font-extrabold text-blue-700 mb-3">🎉 太厲害了！拼圖完成！ 🎉</h3>
+                            <p class="text-lg text-slate-600 mb-8 font-bold">你用了 <span id="finalTimeDisplay" class="text-2xl text-orange-600">00:00</span> 真是個尋寶小天才！</p>
+                            <button id="playAgainBtn" class="w-full bouncy-btn bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-extrabold text-xl py-4 px-6 rounded-full shadow-lg transition-all">
+                                🔄 再玩一次
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-4 text-center text-slate-500 font-semibold text-sm">
+        廠商會中學．小學歷奇日
+    </footer>
+
+    <script>
+        // --- Game Grid Configuration (Easy to modify!) ---
+        const GRID_COLS = 8;
+        const GRID_ROWS = 8;
+        const HINT_DURATION_MS = 5000;
+
+        // Game State Variables
+        let imgUrl = null;
+        let tiles = []; // Holds tile state: { id, domElement, isRevealed }
+        let targetSequence = []; // Array of shuffled IDs to act as targets
+        let currentTargetIndex = 0;
+        let wrongGuesses = 0;
+        let isAnimating = false;
+        let isPlaying = false;
+        let timerInterval = null;
+        let secondsElapsed = 0;
+
+        // DOM Elements
+        const imageUpload = document.getElementById('imageUpload');
+        const startBtn = document.getElementById('startBtn');
+        const gameWrapper = document.getElementById('gameWrapper');
+        const headerArea = document.getElementById('headerArea');
+        const controlsArea = document.getElementById('controlsArea');
+        const placeholder = document.getElementById('placeholder');
+        const backBtn = document.getElementById('backBtn');
+        const board = document.getElementById('board');
+        const targetPiece = document.getElementById('targetPiece');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const totalDisplay = document.getElementById('totalDisplay');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const finalTimeDisplay = document.getElementById('finalTimeDisplay');
+        const winOverlay = document.getElementById('winOverlay');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        const cheerText = document.getElementById('cheerText');
+
+        // Event Listeners
+        imageUpload.addEventListener('change', handleImageUpload);
+        
+        startBtn.addEventListener('click', startGameFlow);
+        
+        backBtn.addEventListener('click', () => {
+            gameWrapper.classList.add('hidden');
+            headerArea.classList.remove('hidden');
+            controlsArea.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+            isPlaying = false;
+            stopTimer();
+        });
+        
+        playAgainBtn.addEventListener('click', startGameFlow);
+
+        // Functions
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                imgUrl = event.target.result;
+                startBtn.disabled = false;
+                placeholder.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function startGameFlow() {
+            headerArea.classList.add('hidden');
+            controlsArea.classList.add('hidden');
+            placeholder.classList.add('hidden');
+            gameWrapper.classList.remove('hidden');
+            gameWrapper.classList.add('flex');
+            winOverlay.classList.add('hidden');
+            
+            // Reset Cheer Text
+            cheerText.textContent = "🚀 準備好了嗎？加油！";
+            cheerText.className = "text-lg font-bold text-orange-500 mb-4 transition-colors h-6 flex items-center justify-center w-full text-center";
+            
+            initGame();
+        }
+
+        function initGame() {
+            board.innerHTML = '';
+            tiles = [];
+            targetSequence = [];
+            currentTargetIndex = 0;
+            wrongGuesses = 0;
+            isAnimating = false;
+            isPlaying = true;
+            
+            startTimer();
+
+            const totalTiles = GRID_COLS * GRID_ROWS;
+            
+            // Set up CSS Grid for the board
+            board.style.gridTemplateColumns = `repeat(${GRID_COLS}, 1fr)`;
+            board.style.gridTemplateRows = `repeat(${GRID_ROWS}, 1fr)`;
+            
+            totalDisplay.textContent = totalTiles;
+            updateScore();
+
+            // Create sequence of IDs and shuffle them to pick random targets
+            for (let i = 0; i < totalTiles; i++) {
+                targetSequence.push(i);
+            }
+            shuffleArray(targetSequence);
+
+            for (let i = 0; i < totalTiles; i++) {
+                createTile(i);
+            }
+
+            setNextTarget();
+        }
+
+        function createTile(id) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'tile perspective w-full h-full';
+            wrapper.dataset.id = id;
+
+            const inner = document.createElement('div');
+            inner.className = 'tile-inner';
+
+            const front = document.createElement('div');
+            front.className = 'tile-front';
+            front.innerHTML = `<span class="text-2xl sm:text-3xl font-black opacity-75">${id + 1}</span>`;
+
+            const back = document.createElement('div');
+            back.className = 'tile-back';
+            
+            // Set the background image slice for this tile
+            back.style.backgroundImage = `url(${imgUrl})`;
+            back.style.backgroundSize = `${GRID_COLS * 100}% ${GRID_ROWS * 100}%`;
+            
+            const correctRow = Math.floor(id / GRID_COLS);
+            const correctCol = id % GRID_COLS;
+            const bgPosX = GRID_COLS > 1 ? (correctCol / (GRID_COLS - 1)) * 100 : 0;
+            const bgPosY = GRID_ROWS > 1 ? (correctRow / (GRID_ROWS - 1)) * 100 : 0;
+            
+            back.style.backgroundPosition = `${bgPosX}% ${bgPosY}%`;
+
+            inner.appendChild(front);
+            inner.appendChild(back);
+            wrapper.appendChild(inner);
+
+            const tileObj = {
+                id: id,
+                domElement: wrapper,
+                isRevealed: false
+            };
+
+            wrapper.addEventListener('click', () => handleTileClick(tileObj));
+
+            tiles.push(tileObj);
+            board.appendChild(wrapper);
+        }
+
+        function setNextTarget() {
+            if (currentTargetIndex >= targetSequence.length) {
+                // Game Won
+                isPlaying = false;
+                stopTimer();
+                finalTimeDisplay.textContent = timeDisplay.textContent;
+                setTimeout(() => {
+                    winOverlay.classList.remove('hidden');
+                    winOverlay.classList.add('flex');
+                }, 600);
+                return;
+            }
+
+            isAnimating = true; // Lock interactions during target transition and hint
+            wrongGuesses = 0; // Reset wrong guesses for the new target
+
+            const currentTargetId = targetSequence[currentTargetIndex];
+            
+            // Briefly fade out target to show it's changing
+            targetPiece.style.opacity = '0';
+            
+            setTimeout(() => {
+                targetPiece.style.backgroundImage = `url(${imgUrl})`;
+                
+                // Target piece needs to look exactly like the tile slice but sized to fit its container
+                // We use background size relative to the target container, which is 1 tile wide
+                targetPiece.style.backgroundSize = `${GRID_COLS * 100}% ${GRID_ROWS * 100}%`;
+                
+                const correctRow = Math.floor(currentTargetId / GRID_COLS);
+                const correctCol = currentTargetId % GRID_COLS;
+                const bgPosX = GRID_COLS > 1 ? (correctCol / (GRID_COLS - 1)) * 100 : 0;
+                const bgPosY = GRID_ROWS > 1 ? (correctRow / (GRID_ROWS - 1)) * 100 : 0;
+                
+                targetPiece.style.backgroundPosition = `${bgPosX}% ${bgPosY}%`;
+                targetPiece.style.opacity = '1';
+
+                // Reset cheer text after 1s if they just got a correct match
+                setTimeout(() => {
+                    if (isPlaying) {
+                        cheerText.textContent = "🚀 準備好了嗎？加油！";
+                        cheerText.className = "text-lg font-bold text-orange-500 mb-4 transition-colors h-6 flex items-center justify-center w-full text-center";
+                    }
+                }, 1000);
+
+                // Trigger the hint mechanic if more than 1/5 tiles remain
+                const totalTiles = GRID_COLS * GRID_ROWS;
+                const remainingTiles = totalTiles - currentTargetIndex;
+                const oneFifth = totalTiles / 5;
+
+                if (remainingTiles > oneFifth) {
+                    showHint(currentTargetId, totalTiles);
+                } else {
+                    isAnimating = false; // Allow clicks immediately without hints
+                }
+            }, 300);
+        }
+
+        function showHint(targetId, totalTiles) {
+            isAnimating = true; // Disable clicks during hint display
+
+            // 1. Get the correct target tile
+            const targetTile = tiles.find(t => t.id === targetId);
+            
+            // 2. Get other remaining unrevealed tiles
+            let otherUnrevealed = tiles.filter(t => !t.isRevealed && t.id !== targetId);
+            
+            // 3. Shuffle and pick random incorrect tiles
+            shuffleArray(otherUnrevealed);
+            
+            // Calculate hint count based on total tiles (at least 1, max total/5)
+            const hintCount = Math.max(1, Math.floor(totalTiles / 5));
+            const numRandomHints = hintCount - 1; // Subtract 1 because the correct tile is always included
+
+            // 4. Combine correct answer with random hints
+            const hintTiles = [targetTile, ...otherUnrevealed.slice(0, numRandomHints)];
+
+            // Flip the chosen hint tiles face up
+            hintTiles.forEach(t => t.domElement.classList.add('flipped'));
+
+            // Flip them back down after the configured duration
+            setTimeout(() => {
+                hintTiles.forEach(t => {
+                    if (!t.isRevealed) {
+                        t.domElement.classList.remove('flipped');
+                    }
+                });
+                isAnimating = false; // Re-enable player clicks
+                
+                // Reset cheer text if it was changed by a hint
+                if (isPlaying) {
+                    cheerText.textContent = "🚀 準備好了嗎？加油！";
+                    cheerText.className = "text-lg font-bold text-orange-500 mb-4 transition-colors h-6 flex items-center justify-center w-full text-center";
+                }
+            }, HINT_DURATION_MS);
+        }
+
+        function handleTileClick(tile) {
+            if (!isPlaying || isAnimating || tile.isRevealed) return;
+
+            const targetId = targetSequence[currentTargetIndex];
+
+            // Flip the clicked tile face up
+            tile.domElement.classList.add('flipped');
+
+            if (tile.id === targetId) {
+                // Correct Match
+                tile.isRevealed = true;
+                tile.domElement.classList.add('matched'); // Grey out the finished tile
+                
+                // Show Correct Cheer Text
+                cheerText.textContent = "👏 答對了！太棒了！ 👏";
+                cheerText.className = "text-lg font-extrabold text-green-600 mb-4 transition-colors h-6 flex items-center justify-center w-full text-center animate-bounce";
+
+                currentTargetIndex++;
+                updateScore();
+                
+                // Set the next target piece
+                setNextTarget();
+            } else {
+                // Wrong Match - Shake and flip back after delay
+                isAnimating = true;
+                wrongGuesses++;
+                tile.domElement.classList.add('shake');
+                
+                // Show Wrong Cheer Text
+                cheerText.textContent = "🤔 哎呀，再找找看！加油！";
+                cheerText.className = "text-lg font-extrabold text-yellow-600 mb-4 transition-colors h-6 flex items-center justify-center w-full text-center";
+
+                setTimeout(() => {
+                    tile.domElement.classList.remove('flipped');
+                    tile.domElement.classList.remove('shake');
+                    
+                    if (wrongGuesses >= 3) {
+                        wrongGuesses = 0;
+                        cheerText.textContent = "💡 提示來囉！仔細看好！";
+                        cheerText.className = "text-lg font-extrabold text-blue-600 mb-4 transition-colors h-6 flex items-center justify-center w-full text-center";
+                        showHint(targetId, GRID_COLS * GRID_ROWS);
+                    } else {
+                        isAnimating = false;
+                        
+                        // Reset Cheer Text
+                        cheerText.textContent = "🚀 準備好了嗎？加油！";
+                        cheerText.className = "text-lg font-bold text-orange-500 mb-4 transition-colors h-6 flex items-center justify-center w-full text-center";
+                    }
+                }, 1500); // 1.5s freeze penalty
+            }
+        }
+
+        function updateScore() {
+            scoreDisplay.textContent = currentTargetIndex;
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            secondsElapsed = 0;
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+            const seconds = (secondsElapsed % 60).toString().padStart(2, '0');
+            timeDisplay.textContent = `${minutes}:${seconds}`;
+        }
+
+        // Utility: Fisher-Yates Shuffle
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+    </script>
+</body>
+</html>
