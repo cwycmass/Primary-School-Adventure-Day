@@ -185,6 +185,11 @@
             </div>
         </div>
 
+        <!-- Countdown Overlay -->
+        <div id="countdownOverlay" class="fixed inset-0 z-[100] hidden flex-col items-center justify-center bg-white/80 backdrop-blur-md">
+            <div id="countdownText" class="text-8xl md:text-[150px] font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-green-500 drop-shadow-xl transition-all duration-300 transform scale-100">載入中...</div>
+        </div>
+
     </main>
 
     <!-- Footer -->
@@ -225,6 +230,8 @@
         const winOverlay = document.getElementById('winOverlay');
         const playAgainBtn = document.getElementById('playAgainBtn');
         const cheerText = document.getElementById('cheerText');
+        const countdownOverlay = document.getElementById('countdownOverlay');
+        const countdownText = document.getElementById('countdownText');
 
         // Event Listeners
         schoolSelect.addEventListener('change', () => {
@@ -232,6 +239,10 @@
                 startBtn.disabled = false;
                 placeholder.classList.add('hidden');
                 imgUrl = `${schoolSelect.value}.jpg`;
+                
+                // Preload the image to prevent delayed loading when tiles flip
+                const imgPreload = new Image();
+                imgPreload.src = imgUrl;
             }
         });
         
@@ -252,7 +263,44 @@
             cheerText.textContent = "🚀 準備好了嗎？加油！";
             cheerText.className = "text-lg font-bold text-orange-500 mb-4 transition-colors h-6 flex items-center justify-center w-full text-center";
             
-            initGame();
+            // Show countdown overlay and wait for image to load
+            countdownOverlay.classList.remove('hidden');
+            countdownOverlay.classList.add('flex');
+            countdownText.textContent = "載入中...";
+            countdownText.style.transform = 'scale(1)';
+
+            const img = new Image();
+            img.onload = () => {
+                startCountdown(3);
+            };
+            img.onerror = () => {
+                countdownText.textContent = "圖片載入失敗 😢";
+                setTimeout(() => {
+                    location.reload(); // Reload to try again on error
+                }, 2000);
+            };
+            img.src = imgUrl;
+        }
+
+        function startCountdown(count) {
+            if (count > 0) {
+                countdownText.textContent = count;
+                countdownText.style.transform = 'scale(1.5)';
+                setTimeout(() => {
+                    countdownText.style.transform = 'scale(1)';
+                }, 200);
+                setTimeout(() => {
+                    startCountdown(count - 1);
+                }, 1000);
+            } else {
+                countdownText.textContent = "開始！";
+                countdownText.style.transform = 'scale(1.5)';
+                setTimeout(() => {
+                    countdownOverlay.classList.remove('flex');
+                    countdownOverlay.classList.add('hidden');
+                    initGame();
+                }, 1000);
+            }
         }
 
         function initGame() {
