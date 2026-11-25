@@ -186,18 +186,9 @@
                     <img id="completedImage" src="" alt="完成拼圖" class="w-full h-full object-cover" />
                 </div>
 
-                <p class="text-lg sm:text-xl text-slate-700 mb-6 font-bold">
+                <p class="text-lg sm:text-xl text-slate-700 font-bold">
                     總共用了 <span id="finalTimeDisplay" class="text-2xl sm:text-3xl font-black text-orange-600">00:00</span> 真是個尋寶小天才！
                 </p>
-
-                <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                    <button id="playAgainBtn" class="flex-1 bouncy-btn bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-extrabold text-lg sm:text-xl py-3.5 px-6 rounded-full shadow-lg transition-all">
-                        🔄 再玩一次
-                    </button>
-                    <button id="changeSchoolBtn" class="flex-1 bouncy-btn bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-extrabold text-lg sm:text-xl py-3.5 px-6 rounded-full shadow-lg transition-all">
-                        🏫 選擇其他學校
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -258,8 +249,6 @@
         const timeDisplay = document.getElementById('timeDisplay');
         const finalTimeDisplay = document.getElementById('finalTimeDisplay');
         const winOverlay = document.getElementById('winOverlay');
-        const playAgainBtn = document.getElementById('playAgainBtn');
-        const changeSchoolBtn = document.getElementById('changeSchoolBtn');
         const completedImage = document.getElementById('completedImage');
         const cheerText = document.getElementById('cheerText');
         const countdownOverlay = document.getElementById('countdownOverlay');
@@ -278,20 +267,6 @@
         });
 
         startBtn.addEventListener('click', startGameFlow);
-        playAgainBtn.addEventListener('click', startGameFlow);
-
-        changeSchoolBtn.addEventListener('click', () => {
-            winOverlay.classList.add('hidden');
-            winOverlay.classList.remove('flex');
-            gameWrapper.classList.add('hidden');
-            gameWrapper.classList.remove('flex');
-            headerArea.classList.remove('hidden');
-            controlsArea.classList.remove('hidden');
-            placeholder.classList.remove('hidden');
-            schoolSelect.value = "";
-            startBtn.disabled = true;
-            imgUrl = null;
-        });
 
         // 啟動遊戲流程 (載入圖片 -> 3, 2, 1 倒數 -> 開始遊戲)
         function startGameFlow() {
